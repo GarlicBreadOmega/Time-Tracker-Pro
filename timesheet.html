@@ -1202,8 +1202,10 @@
                         }
                     }
                     
-                    // Update version
-                    localStorage.setItem('timesheet-version', DATA_VERSION.toString());
+                    // Only update version if it changed (migration occurred)
+                    if (version < DATA_VERSION) {
+                        localStorage.setItem('timesheet-version', DATA_VERSION.toString());
+                    }
                 } catch (error) {
                     console.error('Error loading data:', error);
                 }
@@ -1950,11 +1952,11 @@
                     doc.text('Project', 80, y);
                     doc.text('Hours', 120, y);
                     
-                    // Table rows
+                    // Table rows - process all entries with pagination
                     doc.setFont(undefined, 'normal');
                     y += 8;
                     
-                    filteredEntries.slice(0, 30).forEach(entry => {
+                    filteredEntries.forEach(entry => {
                         if (y > 270) {
                             doc.addPage();
                             y = 20;
