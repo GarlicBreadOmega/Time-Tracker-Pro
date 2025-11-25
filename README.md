@@ -1,4 +1,4 @@
-Timesheet Tracker Pro - Repository Description
+**Timesheet Tracker Pro - Repository Description**
 Here's a comprehensive GitHub repository description that explains what the project is for:
 
 ⏱️ Timesheet Tracker Pro
