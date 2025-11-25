@@ -1,0 +1,2551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timesheet Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+        // Icons (keeping all existing icons and adding new ones)
+        const Plus = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        );
+
+        const Calendar = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+        );
+
+        const Users = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+        );
+
+        const Settings = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+        );
+
+        const Play = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+        );
+
+        const Stop = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            </svg>
+        );
+
+        const Clock = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+        );
+
+        // ... (keep all other existing icons: Lock, Unlock, Trash2, Download, Upload, Search, BarChart, Moon, Sun, Bell, Undo, Redo, FileText, StickyNote, X, Folder)
+
+        const Lock = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+        );
+
+        const Unlock = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+            </svg>
+        );
+
+        const Trash2 = ({ size = 18 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+        );
+
+        const Download = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+        );
+
+        const Upload = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+        );
+
+        const Search = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+            </svg>
+        );
+
+        const BarChart = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+        );
+
+        const Moon = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        );
+
+        const Sun = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+        );
+
+        const Bell = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+        );
+
+        const Undo = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 7v6h6"></path>
+                <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path>
+            </svg>
+        );
+
+        const Redo = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 7v6h-6"></path>
+                <path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7"></path>
+            </svg>
+        );
+
+        const FileText = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+        );
+
+        const StickyNote = ({ size = 16 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7l-5-5z"></path>
+                <line x1="9" y1="9" x2="15" y2="9"></line>
+                <line x1="9" y1="13" x2="15" y2="13"></line>
+                <line x1="9" y1="17" x2="13" y2="17"></line>
+            </svg>
+        );
+
+        const X = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        );
+
+        const Folder = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+        );
+
+        const DEFAULT_CUSTOMIZATION = {
+            theme: 'default',
+            defaultReminderDuration: 60,
+            autoSave: true,
+            timeFormat: '24h',
+            defaultView: 'dashboard',
+            weeklyHourGoal: 40,
+            enableTooltips: true,
+            confirmDeletions: true,
+            highlightTimer: true
+        };
+
+        function TimesheetTracker() {
+            const [entries, setEntries] = useState([]);
+            const [clients, setClients] = useState([]);
+            const [editCode, setEditCode] = useState('');
+            const [unlocked, setUnlocked] = useState(false);
+            const [showCodeInput, setShowCodeInput] = useState(false);
+            const [darkMode, setDarkMode] = useState(false);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filterClient, setFilterClient] = useState('all');
+            const [filterDateRange, setFilterDateRange] = useState({ start: '', end: '' });
+            const [showReports, setShowReports] = useState(false);
+            const [history, setHistory] = useState([]);
+            const [historyIndex, setHistoryIndex] = useState(-1);
+            const [expandedEntry, setExpandedEntry] = useState(null);
+            const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
+            const [reminders, setReminders] = useState([]);
+            const [showNotesModal, setShowNotesModal] = useState(false);
+            const [projectNotes, setProjectNotes] = useState({});
+            const [currentNoteKey, setCurrentNoteKey] = useState('');
+            const [currentNoteText, setCurrentNoteText] = useState('');
+            const [currentPage, setCurrentPage] = useState('dashboard');
+            const [selectedClient, setSelectedClient] = useState(null);
+            const [timer, setTimer] = useState({
+                isRunning: false,
+                startTime: null,
+                elapsedSeconds: 0,
+                currentClient: '',
+                currentProject: '',
+                    currentNotes: ''
+            });
+
+            const NotesEditor = ({ entryId, value, disabled }) => {
+                const [draft, setDraft] = useState(value || '');
+                const debounceTimeout = useRef(null);
+                const textareaRef = useRef(null);
+
+                useEffect(() => {
+                    setDraft(value || '');
+                }, [value, entryId]);
+
+                useEffect(() => {
+                    return () => {
+                        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+                    };
+                }, []);
+
+                const handleChange = (e) => {
+                    const nextValue = e.target.value;
+                    setDraft(nextValue);
+                    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+                    debounceTimeout.current = setTimeout(() => {
+                        updateEntry(entryId, 'notes', nextValue);
+                    }, 500);
+                };
+
+                return (
+                    <textarea
+                        ref={textareaRef}
+                        value={draft}
+                        disabled={disabled}
+                        onChange={handleChange}
+                        rows="1"
+                        className={`bg-transparent w-48 ${disabled ? 'opacity-60' : 'border border-dashed rounded p-1 focus:ring-2 focus:ring-blue-500'}`}
+                    />
+                );
+            };
+            const [customization, setCustomization] = useState({ ...DEFAULT_CUSTOMIZATION });
+            const [showManualEntryModal, setShowManualEntryModal] = useState(false);
+            const [manualEntryData, setManualEntryData] = useState(null);
+            const tooltipTimeout = useRef(null);
+            const timerInterval = useRef(null);
+            const defaultViewInitialized = useRef(false);
+            const ADMIN_CODE = '1234';
+
+            const ensureArray = (value) => (Array.isArray(value) ? value : []);
+
+            const normalizeBreak = (brk = {}, idx = 0) => ({
+                id: brk.id ?? Date.now() + idx,
+                duration: typeof brk.duration === 'number' ? brk.duration : parseInt(brk.duration, 10) || 0,
+                description: brk.description || ''
+            });
+
+            const normalizeEntry = (entry = {}, idx = 0) => {
+                const safeBreaks = ensureArray(entry.breaks).map((brk, breakIdx) => normalizeBreak(brk, breakIdx));
+                const parsedHours = parseFloat(entry.totalHours);
+                const normalizedHours = isNaN(parsedHours)
+                    ? (entry.totalHours !== undefined ? entry.totalHours : '0')
+                    : parsedHours.toFixed(2);
+
+                return {
+                    id: entry.id ?? Date.now() + idx,
+                    date: entry.date || getTodayDate(),
+                    client: entry.client || '',
+                    project: entry.project || '',
+                    timeStarted: entry.timeStarted || '',
+                    breaks: safeBreaks,
+                    timeDone: entry.timeDone || '',
+                    totalHours: normalizedHours,
+                    notes: entry.notes || '',
+                    reminderDuration: entry.reminderDuration ?? customization.defaultReminderDuration
+                };
+            };
+
+            const normalizeEntries = (entryList = []) => ensureArray(entryList).map((entry, idx) => normalizeEntry(entry, idx));
+
+            const normalizeProject = (project = {}, idx = 0) => ({
+                id: project.id ?? Date.now() + idx,
+                name: project.name || `Project ${idx + 1}`,
+                budget: parseFloat(project.budget) || 0,
+                notes: project.notes || ''
+            });
+
+            const normalizeClient = (client = {}, idx = 0) => ({
+                id: client.id ?? Date.now() + idx,
+                name: client.name || `Client ${idx + 1}`,
+                projects: ensureArray(client.projects).map((project, projectIdx) => normalizeProject(project, projectIdx)),
+                color: client.color || '#6B7280',
+                hourlyRate: parseFloat(client.hourlyRate) || 0,
+                notes: client.notes || '',
+                contact: {
+                    email: client.contact?.email || '',
+                    phone: client.contact?.phone || '',
+                    address: client.contact?.address || ''
+                }
+            });
+
+            const normalizeClients = (clientList = []) => ensureArray(clientList).map((client, idx) => normalizeClient(client, idx));
+
+            const createManualEntry = (date = getTodayDate()) => ({
+                date,
+                client: '',
+                project: '',
+                timeStarted: '',
+                timeDone: '',
+                breaks: [],
+                notes: '',
+                reminderDuration: customization.defaultReminderDuration
+            });
+
+            const formatHoursDisplay = (value) => {
+                if (value === 'Invalid') return 'Invalid';
+                const numeric = typeof value === 'number' ? value : parseFloat(value);
+                if (isNaN(numeric)) return '0m';
+                const totalMinutes = Math.round(numeric * 60);
+                let hours = Math.floor(totalMinutes / 60);
+                let minutes = totalMinutes % 60;
+                if (minutes === 60) {
+                    hours += 1;
+                    minutes = 0;
+                }
+                if (hours === 0 && minutes === 0) return '0m';
+                if (hours === 0) return `${minutes}m`;
+                if (minutes === 0) return `${hours}h`;
+                return `${hours}h${minutes.toString().padStart(2, '0')}`;
+            };
+
+            const formatDisplayTime = (timeString) => {
+                if (!timeString) return '--';
+                if (customization.timeFormat === '24h') return timeString;
+                const [hours, minutes] = timeString.split(':');
+                const hourNumber = parseInt(hours, 10);
+                if (isNaN(hourNumber)) return timeString;
+                const suffix = hourNumber >= 12 ? 'PM' : 'AM';
+                const normalizedHour = ((hourNumber + 11) % 12) + 1;
+                const safeMinutes = (minutes || '00').padStart(2, '0');
+                return `${normalizedHour}:${safeMinutes} ${suffix}`;
+            };
+
+            // Timer effect
+            useEffect(() => {
+                if (timer.isRunning) {
+                    timerInterval.current = setInterval(() => {
+                        setTimer(prev => ({
+                            ...prev,
+                            elapsedSeconds: Math.floor((Date.now() - prev.startTime) / 1000)
+                        }));
+                    }, 1000);
+                } else {
+                    clearInterval(timerInterval.current);
+                }
+
+                return () => clearInterval(timerInterval.current);
+            }, [timer.isRunning]);
+
+            useEffect(() => {
+                loadData();
+                checkReminders();
+                const interval = setInterval(checkReminders, 60000);
+                return () => clearInterval(interval);
+            }, []);
+
+            useEffect(() => {
+                if (darkMode) {
+                    document.body.classList.add('dark-mode');
+                } else {
+                    document.body.classList.remove('dark-mode');
+                }
+            }, [darkMode]);
+
+            useEffect(() => {
+                if (showManualEntryModal) {
+                    const previousOverflow = document.body.style.overflow;
+                    document.body.style.overflow = 'hidden';
+                    return () => {
+                        document.body.style.overflow = previousOverflow;
+                    };
+                }
+            }, [showManualEntryModal]);
+
+            useEffect(() => {
+                if (!defaultViewInitialized.current && customization?.defaultView) {
+                    setCurrentPage(customization.defaultView);
+                    defaultViewInitialized.current = true;
+                }
+            }, [customization.defaultView]);
+
+            useEffect(() => {
+                if (!selectedClient) return;
+                const refreshedClient = clients.find(client => client.id === selectedClient.id);
+                if (!refreshedClient) {
+                    setSelectedClient(null);
+                    if (currentPage === 'client-detail') {
+                        setCurrentPage('clients');
+                    }
+                } else if (refreshedClient !== selectedClient) {
+                    setSelectedClient(refreshedClient);
+                }
+            }, [clients, selectedClient, currentPage]);
+
+            // Keyboard shortcuts
+            useEffect(() => {
+                const handleKeyPress = (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        if (e.key === 'n') {
+                            e.preventDefault();
+                            addEntry();
+                        } else if (e.key === 'd') {
+                            e.preventDefault();
+                            addEntryForDate();
+                        } else if (e.key === 'z' && !e.shiftKey) {
+                            e.preventDefault();
+                            undo();
+                        } else if (e.key === 'z' && e.shiftKey) {
+                            e.preventDefault();
+                            redo();
+                        } else if (e.key === 's') {
+                            e.preventDefault();
+                            exportToExcel();
+                        } else if (e.key === 'r') {
+                            e.preventDefault();
+                            setShowReports(!showReports);
+                        } else if (e.key === '1') {
+                            e.preventDefault();
+                            setCurrentPage('dashboard');
+                        } else if (e.key === '2') {
+                            e.preventDefault();
+                            setCurrentPage('clients');
+                        } else if (e.key === 't') {
+                            e.preventDefault();
+                            if (timer.isRunning) {
+                                stopTimer();
+                            } else {
+                                startTimer();
+                            }
+                        }
+                    }
+                };
+                window.addEventListener('keydown', handleKeyPress);
+                return () => window.removeEventListener('keydown', handleKeyPress);
+            }, [entries, history, historyIndex, showReports, unlocked, currentPage, timer.isRunning]);
+
+            // Timer functions
+            const startTimer = () => {
+                setTimer({
+                    isRunning: true,
+                    startTime: Date.now(),
+                    elapsedSeconds: 0,
+                    currentClient: '',
+                    currentProject: '',
+                    currentNotes: ''
+                });
+            };
+
+            const stopTimer = () => {
+                if (!timer.isRunning) return;
+
+                const now = new Date();
+                const startTime = new Date(now.getTime() - (timer.elapsedSeconds * 1000));
+                
+                const timeStarted = startTime.toTimeString().slice(0, 5);
+                const timeDone = now.toTimeString().slice(0, 5);
+                const date = now.toISOString().split('T')[0];
+
+                const totalHours = (timer.elapsedSeconds / 3600).toFixed(2);
+
+                const newEntry = {
+                    id: Date.now(),
+                    date,
+                    client: timer.currentClient,
+                    project: timer.currentProject,
+                    timeStarted,
+                    breaks: [],
+                    timeDone,
+                    totalHours,
+                    notes: timer.currentNotes,
+                    reminderDuration: customization.defaultReminderDuration
+                };
+
+                saveEntries([...entries, newEntry]);
+                setTimer({
+                    isRunning: false,
+                    startTime: null,
+                    elapsedSeconds: 0,
+                    currentClient: '',
+                    currentProject: '',
+                    currentNotes: ''
+                });
+            };
+
+            const updateTimerField = useCallback((field, value) => {
+                setTimer(prev => ({ ...prev, [field]: value }));
+            }, []);
+
+            const formatTime = (seconds) => {
+                const hrs = Math.floor(seconds / 3600);
+                const mins = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            };
+
+            // Performance-optimized calculations with useMemo
+            const todayStats = useMemo(() => {
+                const today = getTodayDate();
+                const todayEntries = entries.filter(entry => entry.date === today);
+                const todayHours = todayEntries.reduce((sum, entry) => sum + parseFloat(entry.totalHours || 0), 0);
+                const activeClients = new Set(todayEntries.map(entry => entry.client).filter(Boolean)).size;
+                
+                return {
+                    hours: todayHours,
+                    entries: todayEntries.length,
+                    activeClients
+                };
+            }, [entries]);
+
+            const weekStats = useMemo(() => {
+                const today = new Date();
+                const startOfWeek = new Date(today);
+                startOfWeek.setDate(today.getDate() - today.getDay());
+                startOfWeek.setHours(0, 0, 0, 0);
+
+                const weekEntries = entries.filter(entry => {
+                    const entryDate = new Date(entry.date);
+                    return entryDate >= startOfWeek && entryDate <= today;
+                });
+
+                const weekHours = weekEntries.reduce((sum, entry) => sum + parseFloat(entry.totalHours || 0), 0);
+                const daysWorked = new Set(weekEntries.map(entry => entry.date)).size;
+                const dailyAverage = daysWorked > 0 ? (weekHours / daysWorked) : 0;
+
+                return {
+                    hours: weekHours,
+                    dailyAverage,
+                    daysWorked
+                };
+            }, [entries]);
+
+            const weekData = useMemo(() => {
+                const days = [];
+                const today = new Date();
+                
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(today.getDate() - i);
+                    const dateString = date.toISOString().split('T')[0];
+                    const dayEntries = entries.filter(entry => entry.date === dateString);
+                    const hours = dayEntries.reduce((sum, entry) => sum + parseFloat(entry.totalHours || 0), 0);
+                    
+                    days.push({
+                        date: dateString,
+                        day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+                        hours,
+                        isToday: i === 0
+                    });
+                }
+                
+                return days;
+            }, [entries]);
+
+            const topClients = useMemo(() => {
+                const clientHours = {};
+                entries.forEach(entry => {
+                    const clientName = entry.client || 'No Client';
+                    if (!clientHours[clientName]) clientHours[clientName] = 0;
+                    const hours = parseFloat(entry.totalHours);
+                    if (!isNaN(hours)) clientHours[clientName] += hours;
+                });
+
+                return Object.entries(clientHours)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5)
+                    .map(([client, hours], index) => ({
+                        client,
+                        hours,
+                        medal: index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '',
+                        color: clients.find(c => c.name === client)?.color || '#6B7280'
+                    }));
+            }, [entries, clients]);
+
+            const recentActivity = useMemo(() => {
+                return [...entries]
+                    .sort((a, b) => new Date(b.date + 'T' + b.timeStarted) - new Date(a.date + 'T' + a.timeStarted))
+                    .slice(0, 5);
+            }, [entries]);
+
+            const maxWeekHours = useMemo(() => {
+                return Math.max(...weekData.map(day => day.hours), 1);
+            }, [weekData]);
+
+            // Rest of the existing functions remain the same...
+            const loadData = () => {
+                try {
+                    const savedEntries = localStorage.getItem('timesheet-entries');
+                    const savedClients = localStorage.getItem('timesheet-clients');
+                    const savedDarkMode = localStorage.getItem('timesheet-darkmode');
+                    const savedReminders = localStorage.getItem('timesheet-reminders');
+                    const savedNotes = localStorage.getItem('timesheet-project-notes');
+                    const savedCustomization = localStorage.getItem('timesheet-customization');
+                    
+                    if (savedEntries) {
+                        const parsedEntries = JSON.parse(savedEntries);
+                        setEntries(normalizeEntries(parsedEntries));
+                    }
+                    if (savedClients) setClients(normalizeClients(JSON.parse(savedClients)));
+                    if (savedDarkMode) setDarkMode(JSON.parse(savedDarkMode));
+                    if (savedReminders) setReminders(JSON.parse(savedReminders));
+                    if (savedNotes) setProjectNotes(JSON.parse(savedNotes));
+                    if (savedCustomization) {
+                        const parsedCustomization = JSON.parse(savedCustomization);
+                        setCustomization({ ...DEFAULT_CUSTOMIZATION, ...parsedCustomization });
+                    }
+                } catch (error) {
+                    console.log('No existing data found');
+                }
+            };
+
+            const saveToHistory = (newEntries) => {
+                const newHistory = history.slice(0, historyIndex + 1);
+                newHistory.push(JSON.stringify(newEntries));
+                if (newHistory.length > 50) newHistory.shift();
+                setHistory(newHistory);
+                setHistoryIndex(newHistory.length - 1);
+            };
+
+            const saveEntries = (newEntries) => {
+                try {
+                    const normalizedEntries = normalizeEntries(newEntries);
+                    localStorage.setItem('timesheet-entries', JSON.stringify(normalizedEntries));
+                    setEntries(normalizedEntries);
+                    saveToHistory(normalizedEntries);
+                } catch (error) {
+                    console.error('Failed to save entries:', error);
+                    alert('Failed to save. Please try again.');
+                }
+            };
+
+            const saveClients = (newClients) => {
+                try {
+                    const normalizedClients = normalizeClients(newClients);
+                    localStorage.setItem('timesheet-clients', JSON.stringify(normalizedClients));
+                    setClients(normalizedClients);
+                } catch (error) {
+                    console.error('Failed to save clients:', error);
+                }
+            };
+
+            const saveDarkMode = (mode) => {
+                localStorage.setItem('timesheet-darkmode', JSON.stringify(mode));
+                setDarkMode(mode);
+            };
+
+            const saveReminders = (newReminders) => {
+                localStorage.setItem('timesheet-reminders', JSON.stringify(newReminders));
+                setReminders(newReminders);
+            };
+
+            const saveProjectNotes = (notes) => {
+                localStorage.setItem('timesheet-project-notes', JSON.stringify(notes));
+                setProjectNotes(notes);
+            };
+
+            const saveCustomization = (newCustomization) => {
+                localStorage.setItem('timesheet-customization', JSON.stringify(newCustomization));
+                setCustomization(newCustomization);
+            };
+
+            const updateCustomization = (field, value) => {
+                saveCustomization({ ...customization, [field]: value });
+            };
+
+            const openNotesModal = (clientName, projectName) => {
+                const key = `${clientName}:::${projectName}`;
+                setCurrentNoteKey(key);
+                setCurrentNoteText(projectNotes[key] || '');
+                setShowNotesModal(true);
+            };
+
+            const saveNote = () => {
+                const updatedNotes = { ...projectNotes, [currentNoteKey]: currentNoteText };
+                saveProjectNotes(updatedNotes);
+                setShowNotesModal(false);
+                setCurrentNoteText('');
+                setCurrentNoteKey('');
+            };
+
+            const closeNotesModal = () => {
+                setShowNotesModal(false);
+                setCurrentNoteText('');
+                setCurrentNoteKey('');
+            };
+
+            const undo = () => {
+                if (historyIndex > 0) {
+                    const newIndex = historyIndex - 1;
+                    const previousState = JSON.parse(history[newIndex]);
+                    setEntries(previousState);
+                    setHistoryIndex(newIndex);
+                    localStorage.setItem('timesheet-entries', JSON.stringify(previousState));
+                }
+            };
+
+            const redo = () => {
+                if (historyIndex < history.length - 1) {
+                    const newIndex = historyIndex + 1;
+                    const nextState = JSON.parse(history[newIndex]);
+                    setEntries(nextState);
+                    setHistoryIndex(newIndex);
+                    localStorage.setItem('timesheet-entries', JSON.stringify(nextState));
+                }
+            };
+
+            function getTodayDate() {
+                return new Date().toISOString().split('T')[0];
+            }
+
+            function isToday(date) {
+                return date === getTodayDate();
+            }
+
+            const openManualEntry = (date = getTodayDate()) => {
+                setManualEntryData(createManualEntry(date));
+                setShowManualEntryModal(true);
+            };
+
+            const closeManualEntry = () => {
+                setShowManualEntryModal(false);
+                setManualEntryData(null);
+            };
+
+            const updateManualEntryField = (field, value) => {
+                setManualEntryData(prev => {
+                    if (!prev) return prev;
+                    const updated = { ...prev, [field]: value };
+                    if (field === 'client') {
+                        updated.project = '';
+                    }
+                    return updated;
+                });
+            };
+
+            const addManualEntryBreak = () => {
+                setManualEntryData(prev => {
+                    if (!prev) return prev;
+                    const newBreak = { id: Date.now(), duration: 0, description: '' };
+                    return { ...prev, breaks: [...ensureArray(prev.breaks), newBreak] };
+                });
+            };
+
+            const updateManualEntryBreak = (breakId, field, value) => {
+                setManualEntryData(prev => {
+                    if (!prev) return prev;
+                    const safeBreaks = ensureArray(prev.breaks).map(brk =>
+                        brk.id === breakId ? { ...brk, [field]: value } : brk
+                    );
+                    return { ...prev, breaks: safeBreaks };
+                });
+            };
+
+            const removeManualEntryBreak = (breakId) => {
+                setManualEntryData(prev => {
+                    if (!prev) return prev;
+                    const safeBreaks = ensureArray(prev.breaks).filter(brk => brk.id !== breakId);
+                    return { ...prev, breaks: safeBreaks };
+                });
+            };
+
+            const handleManualEntrySubmit = (e) => {
+                e.preventDefault();
+                if (!manualEntryData) return;
+                if (!manualEntryData.date) {
+                    alert('Please provide a date.');
+                    return;
+                }
+                if (!manualEntryData.timeStarted || !manualEntryData.timeDone) {
+                    alert('Please provide both start and end times.');
+                    return;
+                }
+
+                const computedHours = calculateTotalHours(
+                    manualEntryData.timeStarted,
+                    manualEntryData.breaks,
+                    manualEntryData.timeDone
+                );
+
+                if (computedHours === 'Invalid') {
+                    alert('Time done must be after time started.');
+                    return;
+                }
+
+                const preparedEntry = normalizeEntry({
+                    ...manualEntryData,
+                    id: Date.now(),
+                    totalHours: computedHours
+                });
+
+                saveEntries([...entries, preparedEntry]);
+                closeManualEntry();
+            };
+
+            const addEntry = () => {
+                openManualEntry();
+            };
+
+            const addEntryForDate = () => {
+                const dateInput = prompt('Enter date (YYYY-MM-DD) or leave blank for today:');
+                const selectedDate = dateInput && dateInput.trim() ? dateInput.trim() : getTodayDate();
+                
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
+                    alert('Invalid date format. Please use YYYY-MM-DD');
+                    return;
+                }
+                
+                if (selectedDate < getTodayDate() && !unlocked) {
+                    alert('Cannot create entries for past dates. Please unlock first.');
+                    return;
+                }
+                
+                openManualEntry(selectedDate);
+            };
+
+            const addClient = () => {
+                const clientName = prompt('Enter client name:');
+                if (clientName && clientName.trim()) {
+                    const newClient = {
+                        id: Date.now(),
+                        name: clientName.trim(),
+                        projects: [],
+                        color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
+                        hourlyRate: 0,
+                        notes: '',
+                        contact: {
+                            email: '',
+                            phone: '',
+                            address: ''
+                        }
+                    };
+                    saveClients([...clients, newClient]);
+                }
+            };
+
+            const updateClientField = (clientId, field, value) => {
+                updateClient(clientId, { [field]: value });
+            };
+
+            const updateClientContactField = (clientId, field, value) => {
+                const target = clients.find(client => client.id === clientId);
+                const existingContact = target?.contact || { email: '', phone: '', address: '' };
+                updateClient(clientId, { contact: { ...existingContact, [field]: value } });
+            };
+
+            const updateClientProjectField = (clientId, projectId, updates) => {
+                const target = clients.find(client => client.id === clientId);
+                if (!target) return;
+                const updatedProjects = target.projects.map(project =>
+                    project.id === projectId ? { ...project, ...updates } : project
+                );
+                updateClient(clientId, { projects: updatedProjects });
+            };
+
+            const updateClient = (clientId, updates) => {
+                const updatedClients = clients.map(client => 
+                    client.id === clientId ? { ...client, ...updates } : client
+                );
+                saveClients(updatedClients);
+            };
+
+            const deleteClient = (clientId) => {
+                if (customization.confirmDeletions && !confirm('Delete this client? Entries will remain but show "No Client".')) {
+                    return;
+                }
+                const updatedEntries = entries.map(entry => 
+                    entry.client === clients.find(c => c.id === clientId)?.name 
+                        ? { ...entry, client: '' } 
+                        : entry
+                );
+                saveEntries(updatedEntries);
+                saveClients(clients.filter(client => client.id !== clientId));
+            };
+
+            const addProjectToClient = (clientId, name) => {
+                const projectName = (name && name.trim()) || 'New Project';
+                const updatedClients = clients.map(client => {
+                    if (client.id === clientId) {
+                        return {
+                            ...client,
+                            projects: [...client.projects, { 
+                                id: Date.now(), 
+                                name: projectName,
+                                budget: 0,
+                                notes: ''
+                            }]
+                        };
+                    }
+                    return client;
+                });
+                saveClients(updatedClients);
+            };
+
+            const removeProjectFromClient = (clientId, projectId) => {
+                const updatedClients = clients.map(client => {
+                    if (client.id === clientId) {
+                        return {
+                            ...client,
+                            projects: client.projects.filter(project => project.id !== projectId)
+                        };
+                    }
+                    return client;
+                });
+                saveClients(updatedClients);
+            };
+
+            const openClientDetail = (client) => {
+                setSelectedClient(client);
+                setCurrentPage('client-detail');
+            };
+
+            const calculateTotalHours = (timeStarted, breaks, timeDone) => {
+                if (!timeStarted || !timeDone) return 0;
+
+                const start = new Date(`2000-01-01T${timeStarted}`);
+                const end = new Date(`2000-01-01T${timeDone}`);
+                
+                if (end <= start) {
+                    return 'Invalid';
+                }
+
+                const safeBreaks = ensureArray(breaks);
+                const totalBreakMinutes = safeBreaks.reduce((sum, brk) => sum + (parseInt(brk.duration) || 0), 0);
+
+                let diffMs = end - start;
+                const totalMinutes = Math.floor(diffMs / 60000) - totalBreakMinutes;
+                
+                if (totalMinutes < 0) return 0;
+                
+                return (totalMinutes / 60).toFixed(2);
+            };
+
+            const updateEntry = (id, field, value) => {
+                const updatedEntries = entries.map(entry => {
+                    if (entry.id === id) {
+                        const updated = { ...entry, [field]: value };
+                        if (field === 'timeStarted' || field === 'breaks' || field === 'timeDone') {
+                            updated.totalHours = calculateTotalHours(
+                                updated.timeStarted,
+                                updated.breaks,
+                                updated.timeDone
+                            );
+                        }
+                        return updated;
+                    }
+                    return entry;
+                });
+                saveEntries(updatedEntries);
+            };
+
+            const addBreak = (entryId) => {
+                const updatedEntries = entries.map(entry => {
+                    if (entry.id === entryId) {
+                        const newBreak = { id: Date.now(), duration: 0, description: '' };
+                        const updatedBreaks = [...ensureArray(entry.breaks), newBreak];
+                        const updated = { ...entry, breaks: updatedBreaks };
+                        updated.totalHours = calculateTotalHours(updated.timeStarted, updated.breaks, updated.timeDone);
+                        return updated;
+                    }
+                    return entry;
+                });
+                saveEntries(updatedEntries);
+            };
+
+            const updateBreak = (entryId, breakId, field, value) => {
+                const updatedEntries = entries.map(entry => {
+                    if (entry.id === entryId) {
+                        const safeBreaks = ensureArray(entry.breaks);
+                        const updatedBreaks = safeBreaks.map(brk => 
+                            brk.id === breakId ? { ...brk, [field]: value } : brk
+                        );
+                        const updated = { ...entry, breaks: updatedBreaks };
+                        updated.totalHours = calculateTotalHours(updated.timeStarted, updatedBreaks, updated.timeDone);
+                        return updated;
+                    }
+                    return entry;
+                });
+                saveEntries(updatedEntries);
+            };
+
+            const removeBreak = (entryId, breakId) => {
+                const updatedEntries = entries.map(entry => {
+                    if (entry.id === entryId) {
+                        const safeBreaks = ensureArray(entry.breaks);
+                        const updatedBreaks = safeBreaks.filter(brk => brk.id !== breakId);
+                        const updated = { ...entry, breaks: updatedBreaks };
+                        updated.totalHours = calculateTotalHours(updated.timeStarted, updatedBreaks, updated.timeDone);
+                        return updated;
+                    }
+                    return entry;
+                });
+                saveEntries(updatedEntries);
+            };
+
+            const deleteEntry = (id) => {
+                if (customization.confirmDeletions && !confirm('Are you sure you want to delete this entry? This action cannot be undone.')) {
+                    return;
+                }
+                saveEntries(entries.filter(entry => entry.id !== id));
+            };
+
+            const handleUnlock = () => {
+                if (editCode === ADMIN_CODE) {
+                    setUnlocked(true);
+                    setShowCodeInput(false);
+                    setEditCode('');
+                    setTimeout(() => setUnlocked(false), 300000);
+                } else {
+                    alert('Incorrect code');
+                    setEditCode('');
+                }
+            };
+
+            const canEdit = (date) => isToday(date) || unlocked;
+
+            const setReminder = (entryId, duration) => {
+                const entry = entries.find(e => e.id === entryId);
+                if (entry && entry.timeStarted && !entry.timeDone) {
+                    const reminderTime = new Date();
+                    const [hours, minutes] = entry.timeStarted.split(':');
+                    reminderTime.setHours(parseInt(hours), parseInt(minutes) + parseInt(duration), 0, 0);
+                    
+                    const newReminder = {
+                        id: Date.now(),
+                        entryId,
+                        time: reminderTime.getTime(),
+                        message: `Check on: ${entry.client || 'Task'} - ${entry.project || 'No project'}`
+                    };
+                    saveReminders([...reminders, newReminder]);
+                }
+            };
+
+            const checkReminders = () => {
+                const now = Date.now();
+                const dueReminders = reminders.filter(r => r.time <= now && r.time > now - 60000);
+                
+                dueReminders.forEach(reminder => {
+                    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                        new Notification('Timesheet Reminder', { body: reminder.message });
+                    } else {
+                        alert(reminder.message);
+                    }
+                });
+
+                if (dueReminders.length > 0) {
+                    saveReminders(reminders.filter(r => r.time > now - 60000));
+                }
+            };
+
+            const requestNotificationPermission = () => {
+                if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+            };
+
+            const exportToExcel = () => {
+                const exportData = filteredEntries.map(entry => ({
+                    Date: entry.date,
+                    Client: entry.client,
+                    Project: entry.project,
+                    'Time Started': entry.timeStarted,
+                    'Total Break Time (min)': ensureArray(entry.breaks).reduce((sum, b) => sum + parseInt(b.duration || 0), 0),
+                    'Time Done': entry.timeDone,
+                    'Total Hours': entry.totalHours,
+                    Notes: entry.notes
+                }));
+
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
+                XLSX.writeFile(wb, `timesheet_${new Date().toISOString().split('T')[0]}.xlsx`);
+            };
+
+            const importFromJSON = () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const data = JSON.parse(event.target.result);
+                            if (confirm('Import data? This will merge with existing entries.')) {
+                                const importedEntries = Array.isArray(data.entries) ? data.entries : [];
+                                saveEntries([...entries, ...importedEntries]);
+                                if (data.clients) saveClients([...clients, ...data.clients]);
+                                if (data.customization) saveCustomization({...customization, ...data.customization});
+                            }
+                        } catch (error) {
+                            alert('Invalid file format');
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+                input.click();
+            };
+
+            const exportToJSON = () => {
+                const data = { entries, clients, customization };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `timesheet_backup_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+            };
+
+            const clearAllData = () => {
+                if (!confirm('This will remove all saved entries, clients, and settings. Continue?')) return;
+                ['timesheet-entries', 'timesheet-clients', 'timesheet-darkmode', 'timesheet-reminders', 'timesheet-project-notes', 'timesheet-customization'].forEach(key => {
+                    localStorage.removeItem(key);
+                });
+                setEntries([]);
+                setClients([]);
+                setDarkMode(false);
+                setReminders([]);
+                setProjectNotes({});
+                setCustomization({ ...DEFAULT_CUSTOMIZATION });
+                setHistory([]);
+                setHistoryIndex(-1);
+                setShowManualEntryModal(false);
+                setManualEntryData(null);
+                setSelectedClient(null);
+                setCurrentPage('dashboard');
+            };
+
+            const showTooltip = (text, e) => {
+                if (!customization.enableTooltips) return;
+                clearTimeout(tooltipTimeout.current);
+                tooltipTimeout.current = setTimeout(() => {
+                    setTooltip({ show: true, text, x: e.clientX, y: e.clientY });
+                }, 1000);
+            };
+
+            const hideTooltip = () => {
+                clearTimeout(tooltipTimeout.current);
+                setTooltip({ show: false, text: '', x: 0, y: 0 });
+            };
+
+            useEffect(() => {
+                if (!customization.enableTooltips) {
+                    hideTooltip();
+                }
+            }, [customization.enableTooltips]);
+
+            const timerFormValues = useMemo(() => ({
+                currentClient: timer.currentClient,
+                currentProject: timer.currentProject,
+                currentNotes: timer.currentNotes
+            }), [timer.currentClient, timer.currentProject, timer.currentNotes]);
+
+            // Filtering
+            const filteredEntries = entries.filter(entry => {
+                const matchesSearch = (entry.client || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                     (entry.project || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                     (entry.notes || '').toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesClient = filterClient === 'all' || entry.client === filterClient;
+                const matchesDateRange = (!filterDateRange.start || entry.date >= filterDateRange.start) &&
+                                        (!filterDateRange.end || entry.date <= filterDateRange.end);
+                return matchesSearch && matchesClient && matchesDateRange;
+            });
+
+            const handleDateFilterChange = (field, value) => {
+                setFilterDateRange(prev => ({ ...prev, [field]: value }));
+            };
+
+            const resetFilters = () => {
+                setSearchTerm('');
+                setFilterClient('all');
+                setFilterDateRange({ start: '', end: '' });
+            };
+
+            const clientEntries = selectedClient ? 
+                entries.filter(entry => entry.client === selectedClient.name) : [];
+
+            const totalAllHours = filteredEntries.reduce((sum, entry) => {
+                const hours = parseFloat(entry.totalHours);
+                return sum + (isNaN(hours) ? 0 : hours);
+            }, 0);
+
+            // Reports
+            const getClientReport = () => {
+                const clientHours = {};
+                filteredEntries.forEach(entry => {
+                    const clientName = entry.client || 'No Client';
+                    if (!clientHours[clientName]) clientHours[clientName] = 0;
+                    const hours = parseFloat(entry.totalHours);
+                    if (!isNaN(hours)) clientHours[clientName] += hours;
+                });
+                return Object.entries(clientHours).sort((a, b) => b[1] - a[1]);
+            };
+
+            const getProjectReport = () => {
+                const projectHours = {};
+                filteredEntries.forEach(entry => {
+                    const key = `${entry.client || 'No Client'} - ${entry.project || 'No Project'}`;
+                    if (!projectHours[key]) projectHours[key] = 0;
+                    const hours = parseFloat(entry.totalHours);
+                    if (!isNaN(hours)) projectHours[key] += hours;
+                });
+                return Object.entries(projectHours).sort((a, b) => b[1] - a[1]);
+            };
+
+            const themeBackgrounds = {
+                default: {
+                    background: 'bg-gradient-to-br from-blue-50 to-indigo-100',
+                    card: 'bg-white',
+                    accent: 'text-blue-600',
+                    highlight: 'from-blue-400 to-purple-500'
+                },
+                ocean: {
+                    background: 'bg-gradient-to-br from-cyan-50 to-sky-100',
+                    card: 'bg-white',
+                    accent: 'text-cyan-600',
+                    highlight: 'from-cyan-400 to-blue-500'
+                },
+                sunrise: {
+                    background: 'bg-gradient-to-br from-rose-50 to-amber-100',
+                    card: 'bg-white',
+                    accent: 'text-rose-600',
+                    highlight: 'from-rose-400 to-amber-400'
+                },
+                forest: {
+                    background: 'bg-gradient-to-br from-green-50 to-emerald-100',
+                    card: 'bg-white',
+                    accent: 'text-emerald-600',
+                    highlight: 'from-green-400 to-emerald-500'
+                },
+                slate: {
+                    background: 'bg-gradient-to-br from-slate-100 to-slate-300',
+                    card: 'bg-white',
+                    accent: 'text-slate-600',
+                    highlight: 'from-slate-400 to-gray-500'
+                },
+                lavender: {
+                    background: 'bg-gradient-to-br from-purple-50 to-fuchsia-100',
+                    card: 'bg-white',
+                    accent: 'text-purple-600',
+                    highlight: 'from-purple-400 to-fuchsia-500'
+                },
+                sunset: {
+                    background: 'bg-gradient-to-br from-orange-50 to-pink-100',
+                    card: 'bg-white',
+                    accent: 'text-orange-600',
+                    highlight: 'from-orange-400 to-pink-500'
+                }
+            };
+
+            const currentTheme = themeBackgrounds[customization.theme] || themeBackgrounds.default;
+
+            const themeClasses = darkMode 
+                ? 'bg-gray-900 text-white' 
+                : currentTheme.background;
+
+            const cardClasses = darkMode 
+                ? 'bg-gray-800 text-white' 
+                : currentTheme.card;
+
+            // Navigation Component
+            const Navigation = () => (
+                <div className={`${cardClasses} rounded-lg shadow-lg p-4 mb-6`}>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={() => setCurrentPage('dashboard')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+                                currentPage === 'dashboard' 
+                                    ? 'bg-blue-600 text-white' 
+                                    : darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'
+                            }`}
+                        >
+                            <BarChart />
+                            Dashboard
+                        </button>
+                        <button
+                            onClick={() => setCurrentPage('clients')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+                                currentPage === 'clients' 
+                                    ? 'bg-blue-600 text-white' 
+                                    : darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'
+                            }`}
+                        >
+                            <Users />
+                            Clients ({clients.length})
+                        </button>
+                        <button
+                            onClick={() => setCurrentPage('settings')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+                                currentPage === 'settings' 
+                                    ? 'bg-blue-600 text-white' 
+                                    : darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'
+                            }`}
+                        >
+                            <Settings />
+                            Settings
+                        </button>
+                    </div>
+                </div>
+            );
+
+            const TimerForm = React.memo(({ currentClient, currentProject, currentNotes, clients, darkMode, onChange }) => {
+                const availableProjects = useMemo(() => {
+                    return clients.find(c => c.name === currentClient)?.projects || [];
+                }, [clients, currentClient]);
+
+                return (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Client</label>
+                                <select
+                                    value={currentClient}
+                                    onChange={(e) => onChange('currentClient', e.target.value)}
+                                    className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                >
+                                    <option value="">Select Client</option>
+                                    {clients.map(client => (
+                                        <option key={client.id} value={client.name}>{client.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Project</label>
+                                <select
+                                    value={currentProject}
+                                    onChange={(e) => onChange('currentProject', e.target.value)}
+                                    disabled={!currentClient}
+                                    className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} disabled:opacity-50`}
+                                >
+                                    <option value="">Select Project</option>
+                                    {availableProjects.map(project => (
+                                        <option key={project.id} value={project.name}>{project.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Notes</label>
+                            <textarea
+                                value={currentNotes}
+                                onChange={(e) => onChange('currentNotes', e.target.value)}
+                                placeholder="What are you working on?"
+                                rows="2"
+                                className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                            />
+                        </div>
+                    </div>
+                );
+            });
+
+            const ManualEntryModal = ({
+                isOpen,
+                entry,
+                clients,
+                darkMode,
+                onClose,
+                onFieldChange,
+                onBreakAdd,
+                onBreakChange,
+                onBreakRemove,
+                onSubmit,
+                hoursPreview
+            }) => {
+                const projectOptions = useMemo(() => {
+                    if (!entry?.client) return [];
+                    return clients.find(c => c.name === entry.client)?.projects || [];
+                }, [clients, entry?.client]);
+
+                if (!isOpen || !entry) {
+                    return null;
+                }
+
+                return (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 overflow-y-auto">
+                        <div className={`${cardClasses} rounded-lg shadow-2xl w-full max-w-3xl`}>
+                            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                                <h2 className="text-2xl font-bold flex items-center gap-2">
+                                    <FileText />
+                                    Manual Entry
+                                </h2>
+                                <button
+                                    onClick={onClose}
+                                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                >
+                                    <X />
+                                </button>
+                            </div>
+                            <form onSubmit={onSubmit} className="p-6 space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Date</label>
+                                        <input
+                                            type="date"
+                                            value={entry.date}
+                                            onChange={(e) => onFieldChange('date', e.target.value)}
+                                            className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Reminder (minutes)</label>
+                                        <input
+                                            type="number"
+                                            min="5"
+                                            value={entry.reminderDuration}
+                                            onChange={(e) => onFieldChange('reminderDuration', parseInt(e.target.value) || 0)}
+                                            className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Client</label>
+                                        <select
+                                            value={entry.client}
+                                            onChange={(e) => onFieldChange('client', e.target.value)}
+                                            className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                        >
+                                            <option value="">Select Client</option>
+                                            {clients.map(client => (
+                                                <option key={client.id} value={client.name}>{client.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Project</label>
+                                        <select
+                                            value={entry.project}
+                                            onChange={(e) => onFieldChange('project', e.target.value)}
+                                            disabled={!entry.client}
+                                            className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} disabled:opacity-50`}
+                                        >
+                                            <option value="">Select Project</option>
+                                            {projectOptions.map(project => (
+                                                <option key={project.id} value={project.name}>{project.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Time Started</label>
+                                        <input
+                                            type="time"
+                                            value={entry.timeStarted}
+                                            onChange={(e) => onFieldChange('timeStarted', e.target.value)}
+                                            className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Time Done</label>
+                                        <input
+                                            type="time"
+                                            value={entry.timeDone}
+                                            onChange={(e) => onFieldChange('timeDone', e.target.value)}
+                                            className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Notes</label>
+                                    <textarea
+                                        value={entry.notes}
+                                        onChange={(e) => onFieldChange('notes', e.target.value)}
+                                        rows="4"
+                                        placeholder="What did you work on?"
+                                        className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                    />
+                                </div>
+
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="text-sm font-medium">Breaks</label>
+                                        <button
+                                            type="button"
+                                            onClick={onBreakAdd}
+                                            className="text-blue-600 hover:text-blue-800 text-sm"
+                                        >
+                                            + Add Break
+                                        </button>
+                                    </div>
+                                    {entry.breaks.length === 0 ? (
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">No breaks added.</p>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {entry.breaks.map(brk => (
+                                                <div key={brk.id} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                                                    <div>
+                                                        <label className="block text-xs font-medium mb-1">Duration (minutes)</label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={brk.duration}
+                                                            onChange={(e) => onBreakChange(brk.id, 'duration', parseInt(e.target.value) || 0)}
+                                                            className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                                        />
+                                                    </div>
+                                                    <div className="md:col-span-2">
+                                                        <label className="block text-xs font-medium mb-1">Description</label>
+                                                        <input
+                                                            type="text"
+                                                            value={brk.description}
+                                                            onChange={(e) => onBreakChange(brk.id, 'description', e.target.value)}
+                                                            className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                                            placeholder="Lunch, errand, etc."
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onBreakRemove(brk.id)}
+                                                        className="text-red-600 hover:text-red-800 text-sm md:col-span-3 text-left"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center justify-between rounded-lg border border-dashed border-gray-300 dark:border-gray-600 px-4 py-3">
+                                    <div>
+                                        <p className="text-sm text-gray-500">Calculated Total</p>
+                                        <p className="text-2xl font-semibold">
+                                                {hoursPreview && hoursPreview !== 'Invalid'
+                                                    ? formatHoursDisplay(hoursPreview)
+                                                    : hoursPreview === 'Invalid'
+                                                        ? 'Invalid'
+                                                        : '0m'}
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={onClose}
+                                            className={`px-4 py-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                                        >
+                                            Save Entry
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                );
+            };
+
+            // Live Timer Component
+            const LiveTimer = () => (
+                <div className={`${cardClasses} rounded-lg shadow-lg p-6 mb-6 ${timer.isRunning && customization.highlightTimer ? 'border-2 border-green-500 animate-pulse' : ''}`}>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-2xl font-bold flex items-center gap-2">
+                            <Clock />
+                            Live Timer {timer.isRunning && '⏱️'}
+                        </h2>
+                        <div className="text-3xl font-mono font-bold text-green-600">
+                            {formatTime(timer.elapsedSeconds)}
+                        </div>
+                    </div>
+
+                    {timer.isRunning ? (
+                        <div className="space-y-4">
+                            <TimerForm
+                                currentClient={timerFormValues.currentClient}
+                                currentProject={timerFormValues.currentProject}
+                                currentNotes={timerFormValues.currentNotes}
+                                clients={clients}
+                                darkMode={darkMode}
+                                onChange={updateTimerField}
+                            />
+                            <button
+                                onClick={stopTimer}
+                                className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg flex items-center justify-center gap-2 font-semibold"
+                            >
+                                <Stop /> Stop Timer & Save Entry
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="text-center">
+                            <p className="text-gray-600 dark:text-gray-400 mb-4">
+                                Ready to track your work time? Start the timer when you begin working.
+                            </p>
+                            <button
+                                onClick={startTimer}
+                                className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg flex items-center justify-center gap-2 font-semibold mx-auto"
+                            >
+                                <Play /> Start Timer (Ctrl+T)
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+
+            // Stats Cards Component
+            const StatsCards = () => (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    {/* Today's Hours */}
+                    <div className={`${cardClasses} rounded-lg shadow-lg p-6 transform hover:scale-105 transition-transform duration-200 cursor-pointer`}>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Today's Hours</p>
+                                <p className={`text-3xl font-bold ${darkMode ? 'text-blue-300' : currentTheme.accent}`}>
+                                    {formatHoursDisplay(todayStats.hours)}
+                                </p>
+                                <p className="text-sm text-gray-500">{todayStats.entries} entries</p>
+                            </div>
+                            <div className="text-2xl">📊</div>
+                        </div>
+                    </div>
+
+                    {/* This Week */}
+                    <div className={`${cardClasses} rounded-lg shadow-lg p-6 transform hover:scale-105 transition-transform duration-200 cursor-pointer`}>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">This Week</p>
+                                <p className={`text-3xl font-bold ${darkMode ? 'text-green-300' : 'text-green-600'}`}>
+                                    {formatHoursDisplay(weekStats.hours)}
+                                </p>
+                                <p className="text-sm text-gray-500">{formatHoursDisplay(weekStats.dailyAverage)} avg/day</p>
+                                <p className="text-xs text-gray-500">Goal: {formatHoursDisplay(customization.weeklyHourGoal)} / wk</p>
+                            </div>
+                            <div className="text-2xl">📅</div>
+                        </div>
+                    </div>
+
+                    {/* Active Clients */}
+                    <div className={`${cardClasses} rounded-lg shadow-lg p-6 transform hover:scale-105 transition-transform duration-200 cursor-pointer`}>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Today</p>
+                                <p className={`text-3xl font-bold ${darkMode ? 'text-purple-300' : 'text-purple-600'}`}>
+                                    {todayStats.activeClients}
+                                </p>
+                                <p className="text-sm text-gray-500">clients worked with</p>
+                            </div>
+                            <div className="text-2xl">👥</div>
+                        </div>
+                    </div>
+
+                    {/* Total Entries */}
+                    <div className={`${cardClasses} rounded-lg shadow-lg p-6 transform hover:scale-105 transition-transform duration-200 cursor-pointer`}>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Entries</p>
+                                <p className="text-3xl font-bold text-orange-600">{entries.length}</p>
+                                <p className="text-sm text-gray-500">all-time records</p>
+                            </div>
+                            <div className="text-2xl">📝</div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // Weekly Activity Chart
+            const WeeklyChart = () => (
+                <div className={`${cardClasses} rounded-lg shadow-lg p-6 mb-6`}>
+                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        📈 Weekly Activity
+                    </h3>
+                    <div className="space-y-3">
+                        {weekData.map(day => {
+                            const percentage = (day.hours / maxWeekHours) * 100;
+                            return (
+                                <div key={day.date} className="flex items-center gap-4">
+                                    <div className="w-12 text-sm font-medium">
+                                        <span className={day.isToday ? 'text-blue-600 font-bold' : ''}>
+                                            {day.day}
+                                        </span>
+                                    </div>
+                                    <div className="flex-1">
+                                        <div 
+                                            className={`h-6 rounded-full transition-all duration-500 ${
+                                                day.isToday 
+                                                    ? (darkMode ? 'bg-blue-300' : 'bg-blue-500') 
+                                                    : `bg-gradient-to-r ${darkMode ? 'from-gray-500 to-gray-700' : currentTheme.highlight}`
+                                            }`}
+                                            style={{ width: `${Math.max(percentage, 5)}%` }}
+                                        ></div>
+                                    </div>
+                                    <div className="w-16 text-right text-sm font-semibold">
+                                        {formatHoursDisplay(day.hours)}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+
+            // Top Clients Leaderboard
+            const TopClients = () => (
+                <div className={`${cardClasses} rounded-lg shadow-lg p-6 mb-6`}>
+                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        🏆 Top Clients
+                    </h3>
+                    <div className="space-y-3">
+                        {topClients.map((client, index) => (
+                            <div key={client.client} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
+                                <div className="flex items-center gap-3">
+                                    <div className="text-lg">{client.medal}</div>
+                                    <div 
+                                        className="w-3 h-3 rounded-full"
+                                        style={{ backgroundColor: client.color }}
+                                    ></div>
+                                    <span className="font-medium">{client.client}</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-24 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                                        <div 
+                                            className={`h-2 rounded-full transition-all duration-500 ${
+                                                darkMode ? 'bg-gradient-to-r from-gray-500 to-gray-700' : `bg-gradient-to-r ${currentTheme.highlight}`
+                                            }`}
+                                            style={{ 
+                                                width: `${(client.hours / Math.max(topClients[0]?.hours || 1, 1)) * 100}%` 
+                                            }}
+                                        ></div>
+                                    </div>
+                                    <span className="font-bold text-blue-600 w-16 text-right">
+                                        {formatHoursDisplay(client.hours)}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+
+            // Recent Activity Feed
+            const RecentActivity = () => (
+                <div className={`${cardClasses} rounded-lg shadow-lg p-6 mb-6`}>
+                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        🕒 Recent Activity
+                    </h3>
+                    <div className="space-y-3">
+                        {recentActivity.map(entry => (
+                            <div key={entry.id} className="flex justify-between items-center p-4 border rounded-lg hover:shadow-md transition-shadow">
+                                <div>
+                                    <p className="font-medium">{entry.client || 'No Client'} - {entry.project || 'No Project'}</p>
+                                    <p className="text-sm text-gray-600">
+                                        {entry.date} • {formatDisplayTime(entry.timeStarted)} - {formatDisplayTime(entry.timeDone)}
+                                    </p>
+                                </div>
+                        <div className="text-right">
+                            <p className={`font-semibold text-lg ${darkMode ? 'text-white' : currentTheme.accent}`}>
+                                {formatHoursDisplay(entry.totalHours)}
+                            </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+
+            // Quick Actions Panel
+            const QuickActions = () => (
+                <div className={`${cardClasses} rounded-lg shadow-lg p-6 mb-6`}>
+                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        ⚡ Quick Actions
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {!timer.isRunning ? (
+                            <button
+                                onClick={startTimer}
+                                className="bg-green-600 hover:bg-green-700 text-white py-4 rounded-lg flex flex-col items-center justify-center gap-2 transition-transform hover:scale-105"
+                            >
+                                <Play size={24} />
+                                <span className="font-semibold">Start Timer</span>
+                                <span className="text-sm opacity-90">(Ctrl+T)</span>
+                            </button>
+                        ) : (
+                            <button
+                                onClick={stopTimer}
+                                className="bg-red-600 hover:bg-red-700 text-white py-4 rounded-lg flex flex-col items-center justify-center gap-2 transition-transform hover:scale-105"
+                            >
+                                <Stop size={24} />
+                                <span className="font-semibold">Stop Timer</span>
+                                <span className="text-sm opacity-90">Save Entry</span>
+                            </button>
+                        )}
+                        <button
+                            onClick={addEntry}
+                            className="bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg flex flex-col items-center justify-center gap-2 transition-transform hover:scale-105"
+                        >
+                            <Plus size={24} />
+                            <span className="font-semibold">Manual Entry</span>
+                            <span className="text-sm opacity-90">(Ctrl+N)</span>
+                        </button>
+                        <button
+                            onClick={exportToExcel}
+                            className="bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-lg flex flex-col items-center justify-center gap-2 transition-transform hover:scale-105"
+                        >
+                            <Download size={24} />
+                            <span className="font-semibold">Export Data</span>
+                            <span className="text-sm opacity-90">Excel/JSON</span>
+                        </button>
+                    </div>
+                </div>
+            );
+
+            const EntriesSection = () => (
+                <div className={`${cardClasses} rounded-lg shadow-lg p-6`}>
+                    <div className="flex flex-wrap gap-4 items-end mb-6">
+                        <div className="flex-1 min-w-[200px]">
+                            <label className="block text-sm font-medium mb-1">Search</label>
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Search client, project or notes"
+                                className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                            />
+                        </div>
+                        <div className="w-48">
+                            <label className="block text-sm font-medium mb-1">Client</label>
+                            <select
+                                value={filterClient}
+                                onChange={(e) => setFilterClient(e.target.value)}
+                                className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                            >
+                                <option value="all">All clients</option>
+                                {clients.map(client => (
+                                    <option key={client.id} value={client.name}>{client.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">From</label>
+                            <input
+                                type="date"
+                                value={filterDateRange.start}
+                                onChange={(e) => handleDateFilterChange('start', e.target.value)}
+                                className={`px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">To</label>
+                            <input
+                                type="date"
+                                value={filterDateRange.end}
+                                onChange={(e) => handleDateFilterChange('end', e.target.value)}
+                                className={`px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                            />
+                        </div>
+                        <button
+                            onClick={resetFilters}
+                            className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition"
+                        >
+                            Reset
+                        </button>
+                    </div>
+
+                    {filteredEntries.length === 0 ? (
+                        <p className="text-gray-500 dark:text-gray-400">No entries match the current filters.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-sm">
+                                <thead>
+                                    <tr className="text-left text-gray-500 uppercase tracking-wider text-xs">
+                                        <th className="py-2 pr-4">Date</th>
+                                        <th className="py-2 pr-4">Client</th>
+                                        <th className="py-2 pr-4">Project</th>
+                                        <th className="py-2 pr-4">Start</th>
+                                        <th className="py-2 pr-4">End</th>
+                                        <th className="py-2 pr-4">Breaks (min)</th>
+                                        <th className="py-2 pr-4">Total</th>
+                                        <th className="py-2 pr-4">Notes</th>
+                                        <th className="py-2">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredEntries.map(entry => {
+                                        const editable = canEdit(entry.date);
+                                        const safeBreaks = ensureArray(entry.breaks);
+                                        const breakMinutes = safeBreaks.reduce((sum, brk) => sum + (parseInt(brk.duration || 0)), 0);
+                                        return (
+                                            <tr key={entry.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                                                <td className="py-3 pr-4">
+                                                    <input
+                                                        type="date"
+                                                        value={entry.date}
+                                                        disabled={!editable}
+                                                        onChange={(e) => updateEntry(entry.id, 'date', e.target.value)}
+                                                        className={`bg-transparent ${editable ? 'cursor-text' : 'opacity-60'}`}
+                                                    />
+                                                </td>
+                                                <td className="py-3 pr-4">
+                                                    <input
+                                                        type="text"
+                                                        value={entry.client}
+                                                        disabled={!editable}
+                                                        onChange={(e) => updateEntry(entry.id, 'client', e.target.value)}
+                                                        className={`bg-transparent w-40 ${editable ? 'border-b border-dashed focus:outline-none' : 'opacity-60'}`}
+                                                        placeholder="Client"
+                                                    />
+                                                </td>
+                                                <td className="py-3 pr-4">
+                                                    <input
+                                                        type="text"
+                                                        value={entry.project}
+                                                        disabled={!editable}
+                                                        onChange={(e) => updateEntry(entry.id, 'project', e.target.value)}
+                                                        className={`bg-transparent w-40 ${editable ? 'border-b border-dashed focus:outline-none' : 'opacity-60'}`}
+                                                        placeholder="Project"
+                                                    />
+                                                </td>
+                                                <td className="py-3 pr-4">
+                                                    <input
+                                                        type="time"
+                                                        value={entry.timeStarted}
+                                                        disabled={!editable}
+                                                        onChange={(e) => updateEntry(entry.id, 'timeStarted', e.target.value)}
+                                                        className={`bg-transparent ${editable ? 'cursor-text' : 'opacity-60'}`}
+                                                    />
+                                                </td>
+                                                <td className="py-3 pr-4">
+                                                    <input
+                                                        type="time"
+                                                        value={entry.timeDone}
+                                                        disabled={!editable}
+                                                        onChange={(e) => updateEntry(entry.id, 'timeDone', e.target.value)}
+                                                        className={`bg-transparent ${editable ? 'cursor-text' : 'opacity-60'}`}
+                                                    />
+                                                </td>
+                                                <td className="py-3 pr-4">
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={breakMinutes}
+                                                        disabled
+                                                        className="bg-transparent w-20"
+                                                    />
+                                                </td>
+                                                <td className="py-3 pr-4 font-semibold">
+                                                    {formatHoursDisplay(entry.totalHours)}
+                                                </td>
+                                                <td className="py-3 pr-4">
+                                                    <NotesEditor
+                                                        entryId={entry.id}
+                                                        value={entry.notes}
+                                                        disabled={!editable}
+                                                    />
+                                                </td>
+                                                <td className="py-3 space-x-2">
+                                                    <button
+                                                        onClick={() => setReminder(entry.id, entry.reminderDuration || customization.defaultReminderDuration)}
+                                                        disabled={!entry.timeStarted || entry.timeDone}
+                                                        className="text-blue-600 hover:underline disabled:text-gray-400"
+                                                    >
+                                                        Reminder
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteEntry(entry.id)}
+                                                        className="inline-flex items-center gap-1 text-red-600 hover:underline"
+                                                    >
+                                                        <Trash2 size={16} /> Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            );
+
+            const ClientsPage = () => (
+                <div className="space-y-6">
+                    <div className={`${cardClasses} rounded-lg shadow-lg p-6`}>
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-2xl font-bold flex items-center gap-2">
+                                    <Users />
+                                    Client Directory
+                                </h2>
+                                <p className="text-gray-500 dark:text-gray-400">Manage your clients and their projects.</p>
+                            </div>
+                            <button
+                                onClick={addClient}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                            >
+                                <Plus size={18} /> New Client
+                            </button>
+                        </div>
+                    </div>
+
+                    {clients.length === 0 ? (
+                        <div className={`${cardClasses} rounded-lg shadow-lg p-6 text-center text-gray-500 dark:text-gray-400`}>
+                            No clients yet. Use the "New Client" button to add your first client.
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                            {clients.map(client => (
+                                <button
+                                    key={client.id}
+                                    onClick={() => openClientDetail(client)}
+                                    className={`${cardClasses} rounded-lg shadow p-5 border border-gray-100 dark:border-gray-700 text-left transition transform hover:-translate-y-1 hover:shadow-xl`}
+                                >
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <span
+                                            className="w-3 h-3 rounded-full"
+                                            style={{ backgroundColor: client.color || '#6B7280' }}
+                                        ></span>
+                                        <div>
+                                            <p className="font-semibold text-lg">{client.name}</p>
+                                            <p className="text-xs text-gray-500">{client.contact?.email || 'No email'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm text-gray-500">
+                                        <span>{client.projects.length} projects</span>
+                                        <span>{clientEntries.filter(entry => entry.client === client.name).length} entries</span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+
+            const ClientDetailPage = () => {
+                if (!selectedClient) {
+                    return (
+                        <div className={`${cardClasses} rounded-lg shadow-lg p-6`}>
+                            <p className="text-gray-500 dark:text-gray-400 mb-4">No client selected.</p>
+                            <button
+                                onClick={() => setCurrentPage('clients')}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+                            >
+                                Back to Clients
+                            </button>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="space-y-6 max-w-6xl mx-auto">
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <button
+                                className="text-blue-600 hover:underline"
+                                onClick={() => setCurrentPage('clients')}
+                            >
+                                Clients
+                            </button>
+                            <span>/</span>
+                            <span>{selectedClient.name}</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className={`${cardClasses} rounded-lg shadow-lg p-6 lg:col-span-2`}>
+                                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                                    <div>
+                                        <h2 className="text-3xl font-bold">{selectedClient.name}</h2>
+                                        <p className="text-gray-500 dark:text-gray-400">
+                                            {selectedClient.projects.length} projects • {clientEntries.length} entries
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            const nextName = prompt('Rename client', selectedClient.name);
+                                            if (nextName && nextName.trim()) {
+                                                updateClientField(selectedClient.id, 'name', nextName.trim());
+                                            }
+                                        }}
+                                        className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+                                    >
+                                        Rename
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-gray-300">
+                                    <div>
+                                        <p className="font-semibold">Email</p>
+                                        <p>{selectedClient.contact.email || '—'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold">Phone</p>
+                                        <p>{selectedClient.contact.phone || '—'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold">Address</p>
+                                        <p>{selectedClient.contact.address || '—'}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className={`${cardClasses} rounded-lg shadow-lg p-6 space-y-4`}>
+                                <h3 className="text-lg font-semibold">Client Settings</h3>
+                                <div>
+                                    <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Color</label>
+                                    <input
+                                        type="color"
+                                        value={selectedClient.color || '#6B7280'}
+                                        onChange={(e) => updateClientField(selectedClient.id, 'color', e.target.value)}
+                                        className="w-16 h-10 rounded cursor-pointer border border-gray-300 dark:border-gray-600"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Hourly Rate</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={selectedClient.hourlyRate || 0}
+                                        onChange={(e) => updateClientField(selectedClient.id, 'hourlyRate', parseFloat(e.target.value) || 0)}
+                                        className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Contact Notes</label>
+                                    <textarea
+                                        value={selectedClient.notes || ''}
+                                        onChange={(e) => updateClientField(selectedClient.id, 'notes', e.target.value)}
+                                        rows="3"
+                                        className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                    />
+                                </div>
+                                <button
+                                    onClick={() => deleteClient(selectedClient.id)}
+                                    className="w-full px-4 py-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200"
+                                >
+                                    Delete Client
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className={`${cardClasses} rounded-lg shadow-lg p-6`}>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-semibold">Projects</h3>
+                                <button
+                                    type="button"
+                                    onClick={() => addProjectToClient(selectedClient.id)}
+                                    className="text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                    + Add Project
+                                </button>
+                            </div>
+                            {selectedClient.projects.length === 0 ? (
+                                <p className="text-gray-500">No projects yet.</p>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {selectedClient.projects.map(project => (
+                                        <div key={project.id} className="border border-gray-100 dark:border-gray-700 rounded-lg p-4 space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="font-semibold">{project.name}</p>
+                                                    <p className="text-xs text-gray-500">{project.notes || 'No notes'}</p>
+                                                </div>
+                                                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                                                    Budget: {project.budget || 0} hrs
+                                                </span>
+                                            </div>
+                                            <textarea
+                                                value={project.notes || ''}
+                                                onChange={(e) => updateClientProjectField(selectedClient.id, project.id, { notes: e.target.value })}
+                                                rows="2"
+                                                className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                                placeholder="Update project notes..."
+                                            />
+                                            <div className="flex flex-wrap gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openNotesModal(selectedClient.name, project.name)}
+                                                    className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-sm dark:bg-gray-700 dark:hover:bg-gray-600"
+                                                >
+                                                    Notes Panel
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeProjectFromClient(selectedClient.id, project.id)}
+                                                    className="px-3 py-1 rounded bg-red-100 text-red-600 hover:bg-red-200 text-sm"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className={`${cardClasses} rounded-lg shadow-lg p-6`}>
+                            <h3 className="text-xl font-semibold mb-4">Recent Activity</h3>
+                            {clientEntries.length === 0 ? (
+                                <p className="text-gray-500">No entries recorded for this client.</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {clientEntries.slice(0, 10).map(entry => (
+                                        <div key={entry.id} className="p-4 border rounded-lg flex justify-between">
+                                            <div>
+                                                <p className="font-semibold">{entry.project || 'No Project'}</p>
+                                                <p className="text-sm text-gray-500">
+                                                    {entry.date} • {formatDisplayTime(entry.timeStarted)} - {formatDisplayTime(entry.timeDone)}
+                                                </p>
+                                            </div>
+                                            <div className="text-right font-semibold">{formatHoursDisplay(entry.totalHours)}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
+            const SettingsPage = () => (
+                <div className="space-y-6">
+                    <div className={`${cardClasses} rounded-lg shadow-lg p-6`}>
+                        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                            <Settings />
+                            Appearance & Behavior
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Accent Theme</label>
+                                <select
+                                    value={customization.theme}
+                                    onChange={(e) => updateCustomization('theme', e.target.value)}
+                                    className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                >
+                                    <option value="default">Indigo</option>
+                                    <option value="ocean">Ocean</option>
+                                    <option value="sunrise">Sunrise</option>
+                                    <option value="forest">Forest</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Mode</label>
+                                <button
+                                    onClick={() => saveDarkMode(!darkMode)}
+                                    className="w-full px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+                                >
+                                    Switch to {darkMode ? 'Light' : 'Dark'} Mode
+                                </button>
+                            </div>
+                            <div className="flex items-center">
+                                <label className="flex items-center gap-3 text-sm font-medium">
+                                    <input
+                                        type="checkbox"
+                                        checked={customization.enableTooltips}
+                                        onChange={(e) => updateCustomization('enableTooltips', e.target.checked)}
+                                    />
+                                    Show contextual tooltips
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={`${cardClasses} rounded-lg shadow-lg p-6`}>
+                        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                            <Clock />
+                            Time Tracking Defaults
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Default Reminder (minutes)</label>
+                                <input
+                                    type="number"
+                                    min="5"
+                                    value={customization.defaultReminderDuration}
+                                    onChange={(e) => updateCustomization('defaultReminderDuration', parseInt(e.target.value) || 0)}
+                                    className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Time Format</label>
+                                <select
+                                    value={customization.timeFormat}
+                                    onChange={(e) => updateCustomization('timeFormat', e.target.value)}
+                                    className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                >
+                                    <option value="24h">24-hour</option>
+                                    <option value="12h">12-hour</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Weekly Hour Goal</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={customization.weeklyHourGoal}
+                                    onChange={(e) => updateCustomization('weeklyHourGoal', parseFloat(e.target.value) || 0)}
+                                    className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Default View</label>
+                                <select
+                                    value={customization.defaultView}
+                                    onChange={(e) => {
+                                        updateCustomization('defaultView', e.target.value);
+                                        setCurrentPage(e.target.value);
+                                    }}
+                                    className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                                >
+                                    <option value="dashboard">Dashboard</option>
+                                    <option value="clients">Clients</option>
+                                </select>
+                            </div>
+                            <div className="flex items-center">
+                                <label className="flex items-center gap-3 text-sm font-medium">
+                                    <input
+                                        type="checkbox"
+                                        checked={customization.autoSave}
+                                        onChange={(e) => updateCustomization('autoSave', e.target.checked)}
+                                    />
+                                    Auto-save entries as you type
+                                </label>
+                            </div>
+                            <div className="flex items-center">
+                                <label className="flex items-center gap-3 text-sm font-medium">
+                                    <input
+                                        type="checkbox"
+                                        checked={customization.confirmDeletions}
+                                        onChange={(e) => updateCustomization('confirmDeletions', e.target.checked)}
+                                    />
+                                    Ask before deleting items
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={`${cardClasses} rounded-lg shadow-lg p-6`}>
+                        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                            <Bell />
+                            Data & Notifications
+                        </h2>
+                        <div className="flex flex-wrap gap-4 mb-4">
+                            <button
+                                onClick={requestNotificationPermission}
+                                className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-2"
+                            >
+                                <Bell /> Enable Desktop Notifications
+                            </button>
+                            <button
+                                onClick={exportToJSON}
+                                className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                            >
+                                <Download /> Export Backup
+                            </button>
+                            <button
+                                onClick={importFromJSON}
+                                className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2"
+                            >
+                                <Upload /> Import Backup
+                            </button>
+                        </div>
+                        <button
+                            onClick={clearAllData}
+                            className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white"
+                        >
+                            Clear Saved Timesheet Data
+                        </button>
+                    </div>
+                </div>
+            );
+
+            const manualEntryHoursPreview = manualEntryData
+                ? calculateTotalHours(manualEntryData.timeStarted, manualEntryData.breaks, manualEntryData.timeDone)
+                : '';
+
+            // Main Dashboard Layout
+            const DashboardPage = () => (
+                <div className="space-y-6">
+                    {/* Live Timer */}
+                    <LiveTimer />
+
+                    {/* Quick Actions */}
+                    <QuickActions />
+
+                    {/* Stats Cards */}
+                    <StatsCards />
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Weekly Chart */}
+                        <WeeklyChart />
+
+                        {/* Top Clients & Recent Activity Stack */}
+                        <div className="space-y-6">
+                            <TopClients />
+                            <RecentActivity />
+                        </div>
+                    </div>
+
+                    <EntriesSection />
+                </div>
+            );
+
+            // Note: The rest of the component (ClientDetailPage, ClientsPage, SettingsPage, etc.)
+            // remains exactly the same as in the previous implementation...
+
+            return (
+                <div className={`min-h-screen ${themeClasses} p-6 transition-colors duration-300`}>
+                    {tooltip.show && (
+                        <div 
+                            className="fixed bg-gray-900 text-white px-3 py-2 rounded text-sm z-50"
+                            style={{ left: tooltip.x + 10, top: tooltip.y + 10 }}
+                        >
+                            {tooltip.text}
+                        </div>
+                    )}
+
+                    {/* Notes Modal */}
+                    {showNotesModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className={`${cardClasses} rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden`}>
+                                <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
+                                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                                        <StickyNote />
+                                        Project Notes
+                                    </h2>
+                                    <button
+                                        onClick={closeNotesModal}
+                                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition"
+                                    >
+                                        <X />
+                                    </button>
+                                </div>
+                                <div className="p-6">
+                                    <div className="mb-4">
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                            {currentNoteKey.split(':::')[0]} - {currentNoteKey.split(':::')[1] || 'No Project'}
+                                        </p>
+                                    </div>
+                                    <textarea
+                                        value={currentNoteText}
+                                        onChange={(e) => setCurrentNoteText(e.target.value)}
+                                        placeholder="Add detailed notes about this project..."
+                                        rows="12"
+                                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                                    />
+                                    <div className="flex justify-end gap-3 mt-6">
+                                        <button
+                                            onClick={closeNotesModal}
+                                            className={`px-6 py-2 rounded-lg transition ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={saveNote}
+                                            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+                                        >
+                                            Save Note
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <ManualEntryModal
+                        isOpen={showManualEntryModal}
+                        entry={manualEntryData}
+                        clients={clients}
+                        darkMode={darkMode}
+                        onClose={closeManualEntry}
+                        onFieldChange={updateManualEntryField}
+                        onBreakAdd={addManualEntryBreak}
+                        onBreakChange={updateManualEntryBreak}
+                        onBreakRemove={removeManualEntryBreak}
+                        onSubmit={handleManualEntrySubmit}
+                        hoursPreview={
+                            manualEntryHoursPreview && manualEntryHoursPreview !== 'Invalid'
+                                ? manualEntryHoursPreview
+                                : manualEntryHoursPreview === 'Invalid'
+                                    ? 'Invalid'
+                                    : '0.00'
+                        }
+                    />
+
+                    <div className="max-w-7xl mx-auto">
+                        <Navigation />
+                        
+                        {currentPage === 'dashboard' && <DashboardPage />}
+                        {currentPage === 'clients' && <ClientsPage />}
+                        {currentPage === 'client-detail' && <ClientDetailPage />}
+                        {currentPage === 'settings' && <SettingsPage />}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<TimesheetTracker />, document.getElementById('root'));
+    </script>
+    <style>
+        .dark-mode {
+            background: #1a202c;
+            color: white;
+        }
+        kbd {
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(34, 197, 94, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.8); }
+        }
+        .animate-pulse {
+            animation: pulse-glow 2s infinite;
+        }
+    </style>
+</body>
+</html> 
